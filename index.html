@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>US Combo Generator v2.0</title>
+    <title>US Combo Generator v3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Faker/3.1.0/faker.min.js"></script>
     <style>
         :root { --bg-color: #0a0a0a; --text-main: #00ff00; --text-white: #ffffff; --text-purple: #aa88ff; --text-muted: #666666; --text-red: #ff5555; }
@@ -31,7 +31,7 @@
         </div>
         
         <section class="info-text">
-            <strong>US Combo Generator v2.0</strong><br>
+            <strong>US Combo Generator v3.0</strong><br>
             Developed by: <a href="https://t.me/Silverbullets_bot" style="color:var(--text-purple); text-decoration: none;">@Silverbullets_bot</a>
         </section>
 
@@ -41,6 +41,7 @@
                 <option value="email:pass">Email:Password</option>
                 <option value="user:pass">Username:Password</option>
                 <option value="email:pass:name">Email:Password:Name</option>
+                <option value="full_identity">Full Identity (Name, Phone, Address, Zip)</option>
             </select>
             <button id="generate-btn">[ GENERATE ]</button>
             <button id="download-btn">[ DOWNLOAD ]</button>
@@ -56,14 +57,29 @@
         const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com'];
 
         const generateMockCombo = (format) => {
-            const f = faker.name.firstName().toLowerCase().replace(/[^a-z]/g, '');
-            const l = faker.name.lastName().toLowerCase().replace(/[^a-z]/g, '');
+            const f = faker.name.firstName();
+            const l = faker.name.lastName();
+            
+            // New "Full Identity" logic
+            if (format === 'full_identity') {
+                const phone = faker.phone.phoneNumber();
+                const street = faker.address.streetAddress();
+                const city = faker.address.city();
+                const state = faker.address.stateAbbr();
+                const zip = faker.address.zipCode();
+                const email = faker.internet.email(f, l);
+                return `Name: ${f} ${l} | Email: ${email} | Phone: ${phone} | Addr: ${street}, ${city}, ${state} ${zip}`;
+            }
+
+            // Original credential logic
+            const fLower = f.toLowerCase().replace(/[^a-z]/g, '');
+            const lLower = l.toLowerCase().replace(/[^a-z]/g, '');
             const p = faker.internet.password(8) + Math.floor(Math.random() * 99);
             const domain = domains[Math.floor(Math.random() * domains.length)];
             
-            if (format === 'user:pass') return `${f}${l.substring(0,3)}:${p}`;
-            if (format === 'email:pass:name') return `${f}.${l}@${domain}:${p}:${f} ${l}`;
-            return `${f}.${l}@${domain}:${p}`;
+            if (format === 'user:pass') return `${fLower}${lLower.substring(0,3)}:${p}`;
+            if (format === 'email:pass:name') return `${fLower}.${lLower}@${domain}:${p}:${f} ${l}`;
+            return `${fLower}.${lLower}@${domain}:${p}`;
         };
 
         const generateBtn = document.getElementById('generate-btn');
@@ -72,12 +88,7 @@
 
         generateBtn.addEventListener('click', async () => {
             let amount = parseInt(document.getElementById('amount').value);
-            
-            // SECURITY LIMIT: Prevent browser freezing
-            if (amount > 50000) {
-                alert("Max limit is 50,000 for stability!");
-                amount = 50000;
-            }
+            if (amount > 50000) { alert("Max limit is 50,000 for stability!"); amount = 50000; }
             if (isNaN(amount) || amount < 1) amount = 1000;
 
             const format = document.getElementById('format').value;
@@ -85,11 +96,8 @@
             progressBar.style.width = "0%";
             
             let results = [];
-            // Generate in chunks to keep browser responsive
             for(let i = 0; i < amount; i++) {
                 results.push(generateMockCombo(format));
-                
-                // Update UI every 500 items
                 if(i % 500 === 0) {
                     progressBar.style.width = ((i / amount) * 100) + "%";
                     outputArea.value = "Generating... " + Math.floor((i / amount) * 100) + "%";
@@ -105,7 +113,7 @@
             const blob = new Blob([outputArea.value], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = 'US_Combos.txt'; a.click();
+            a.href = url; a.download = 'Data_Export.txt'; a.click();
             URL.revokeObjectURL(url);
         });
 
