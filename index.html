@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Combo Generator v2.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Faker/3.1.0/faker.min.js"></script>
+    <style>
+        :root { --bg-color: #0a0a0a; --text-main: #00ff00; --text-white: #ffffff; --text-purple: #aa88ff; --text-muted: #666666; --text-red: #ff5555; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Courier New', monospace; padding: 20px; font-size: 14px; text-shadow: 0 0 2px rgba(0, 255, 0, 0.3); }
+        .container { max-width: 800px; margin: auto; }
+        .ascii-art { white-space: pre; font-weight: bold; margin-bottom: 20px; font-size: 10px; overflow-x: auto; color: var(--text-main); }
+        .info-text { margin-bottom: 20px; border-bottom: 1px dashed var(--text-main); padding-bottom: 10px; }
+        .grid-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        select, input, button { background: transparent; border: 1px solid var(--text-main); color: var(--text-main); padding: 6px; font-family: monospace; cursor: pointer; outline: none; }
+        button:hover { background: var(--text-main); color: var(--bg-color); }
+        .progress-container { width: 100%; height: 15px; border: 1px solid var(--text-main); margin-bottom: 10px; }
+        #progress-bar { width: 0%; height: 100%; background-color: var(--text-main); transition: width 0.3s; }
+        #output-area { width: 100%; height: 300px; background: #000; color: #ccc; border: 1px dashed var(--text-muted); padding: 10px; font-family: monospace; resize: vertical; box-sizing: border-box; outline: none; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="ascii-art">
+██╗   ██╗███████╗    ██████╗ ███████╗███╗   ██╗
+██║   ██║██╔════╝   ██╔════╝ ██╔════╝████╗  ██║
+██║   ██║███████╗   ██║  ███╗█████╗  ██╔██╗ ██║
+██║   ██║╚════██║   ██║   ██║██╔══╝  ██║╚██╗██║
+╚██████╔╝███████║   ╚██████╔╝███████╗██║ ╚████║
+ ╚═════╝ ╚══════╝    ╚═════╝ ╚══════╝╚═╝  ╚═══╝
+        </div>
+        
+        <section class="info-text">
+            <strong>US Combo Generator v2.0</strong><br>
+            Developed by: <a href="https://t.me/Silverbullets_bot" style="color:var(--text-purple); text-decoration: none;">@Silverbullets_bot</a>
+        </section>
+
+        <div class="grid-controls">
+            <input type="number" id="amount" value="1000" min="1" max="50000">
+            <select id="format">
+                <option value="email:pass">Email:Password</option>
+                <option value="user:pass">Username:Password</option>
+                <option value="email:pass:name">Email:Password:Name</option>
+            </select>
+            <button id="generate-btn">[ GENERATE ]</button>
+            <button id="download-btn">[ DOWNLOAD ]</button>
+            <button id="copy-btn">[ COPY ]</button>
+            <button id="clear-btn">[ CLEAR ]</button>
+        </div>
+
+        <div class="progress-container"><div id="progress-bar"></div></div>
+        <textarea id="output-area" readonly>// System ready. Awaiting parameters (Max 50,000)...</textarea>
+    </main>
+
+    <script>
+        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com'];
+
+        const generateMockCombo = (format) => {
+            const f = faker.name.firstName().toLowerCase().replace(/[^a-z]/g, '');
+            const l = faker.name.lastName().toLowerCase().replace(/[^a-z]/g, '');
+            const p = faker.internet.password(8) + Math.floor(Math.random() * 99);
+            const domain = domains[Math.floor(Math.random() * domains.length)];
+            
+            if (format === 'user:pass') return `${f}${l.substring(0,3)}:${p}`;
+            if (format === 'email:pass:name') return `${f}.${l}@${domain}:${p}:${f} ${l}`;
+            return `${f}.${l}@${domain}:${p}`;
+        };
+
+        const generateBtn = document.getElementById('generate-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const outputArea = document.getElementById('output-area');
+
+        generateBtn.addEventListener('click', async () => {
+            let amount = parseInt(document.getElementById('amount').value);
+            
+            // SECURITY LIMIT: Prevent browser freezing
+            if (amount > 50000) {
+                alert("Max limit is 50,000 for stability!");
+                amount = 50000;
+            }
+            if (isNaN(amount) || amount < 1) amount = 1000;
+
+            const format = document.getElementById('format').value;
+            outputArea.value = "Initializing generation...";
+            progressBar.style.width = "0%";
+            
+            let results = [];
+            // Generate in chunks to keep browser responsive
+            for(let i = 0; i < amount; i++) {
+                results.push(generateMockCombo(format));
+                
+                // Update UI every 500 items
+                if(i % 500 === 0) {
+                    progressBar.style.width = ((i / amount) * 100) + "%";
+                    outputArea.value = "Generating... " + Math.floor((i / amount) * 100) + "%";
+                    await new Promise(r => setTimeout(r, 1));
+                }
+            }
+            outputArea.value = results.join('\n');
+            progressBar.style.width = "100%";
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if(!outputArea.value || outputArea.value.startsWith("//")) return;
+            const blob = new Blob([outputArea.value], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'US_Combos.txt'; a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            if(!outputArea.value || outputArea.value.startsWith("//")) return;
+            outputArea.select(); 
+            document.execCommand('copy');
+            alert("Copied to clipboard!");
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            outputArea.value = "// System cleared. Standby."; 
+            progressBar.style.width = "0%";
+        });
+    </script>
+</body>
+</html>
